@@ -61,11 +61,11 @@ export class TasksService {
     } catch (error: any) {
       //Manejo de errores
 
+      // Si el id no tiene formato valido
       if (error?.name === 'CastError') {
-        throw new BadRequestException(`Invalid value for field: ${error.path}`); //Si el id no es un objeto de id valido de mongose o algun campo no coincide con el tipo esperado
+        throw new BadRequestException(`Invalid value for field: ${error.path}`);
       }
-
-      throw new InternalServerErrorException('Error deleting task'); //Error del servidor
+      throw error;
     }
   }
 
@@ -93,15 +93,17 @@ export class TasksService {
       return task; //regresamos la task si todo salio bien
     } catch (error: any) {
       //manejo de errores
+      // Error de validación de mongoose
       if (error?.name === 'ValidationError') {
         throw new BadRequestException(error.message);
       }
 
+      // Id o tipo inválido
       if (error?.name === 'CastError') {
         throw new BadRequestException(`Invalid value for field: ${error.path}`);
       }
 
-      throw new InternalServerErrorException('Error updating task');
+      throw error;
     }
   }
 
@@ -170,12 +172,13 @@ export class TasksService {
 
       return task;
     } catch (error: any) {
+      // Si el id no es valido
+
       if (error?.name === 'CastError') {
-        //Si no es un id valido
         throw new BadRequestException(`Invalid value for field: ${error.path}`);
       }
 
-      throw new InternalServerErrorException('Error fetching task'); //cualquier error del servidor
+      throw error;
     }
   }
 
@@ -185,7 +188,11 @@ export class TasksService {
       const tasks = await this.taskModel.find().sort({ createdAt: -1 });
 
       // Creamos un objeto con una lista vacía por cada prioridad
-      const groupedTasks = {
+      const groupedTasks: {
+        LOW: TaskDocument[];
+        MEDIUM: TaskDocument[];
+        HIGH: TaskDocument[];
+      } = {
         LOW: [],
         MEDIUM: [],
         HIGH: [],
@@ -193,11 +200,22 @@ export class TasksService {
 
       // Recorremos cada tarea y la agregamos a la lista que le corresponde
       tasks.forEach((task) => {
-        groupedTasks[task.priority].push(task);
+        if (task.priority === 'LOW') {
+          groupedTasks.LOW.push(task);
+        }
+
+        if (task.priority === 'MEDIUM') {
+          groupedTasks.MEDIUM.push(task);
+        }
+
+        if (task.priority === 'HIGH') {
+          groupedTasks.HIGH.push(task);
+        }
       });
 
       return groupedTasks;
-    } catch {
+    } catch (error) {
+      console.log(error);
       throw new InternalServerErrorException(
         'Error grouping tasks by priority',
       );
