@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { Task } from './schemas/task.schema';
+import { Query } from '@nestjs/common';
+import type { TaskQuery } from './types/task.types';
 
 @Controller('tasks')
 export class TasksController {
@@ -22,8 +24,15 @@ export class TasksController {
 
   // Obtener todas las tasks
   @Get()
-  findAll() {
-    return this.tasksService.findAll();
+  //filtros opcionales por query
+  findAll(@Query() query: TaskQuery) {
+    return this.tasksService.findAll(query);
+  }
+
+  // Obtener las tasks agrupadas por prioridad
+  @Get('grouped-by-priority')
+  groupByPriority() {
+    return this.tasksService.groupByPriority();
   }
 
   // Obtener task por id
@@ -34,10 +43,7 @@ export class TasksController {
 
   // Actualizar task
   @Put(':id')
-  update(
-    @Param('id') id: string,
-    @Body() body: Partial<Task>,
-  ) {
+  update(@Param('id') id: string, @Body() body: Partial<Task>) {
     return this.tasksService.update(id, body);
   }
 

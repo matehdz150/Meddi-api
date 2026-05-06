@@ -7,6 +7,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Task, TaskDocument } from './schemas/task.schema';
 import { Model } from 'mongoose';
+import { TaskQuery } from './types/task.types';
 
 @Injectable()
 export class TasksService {
@@ -104,10 +105,17 @@ export class TasksService {
     }
   }
 
-  async findAll() {
+  async findAll(query: TaskQuery) {
+    //para no dejar anys, hice un type con las querys aceptadas por findAll
     //Obtener todas las tasks
     try {
-      const tasks = await this.taskModel.find().sort({ createdAt: -1 }); //Traemos todas las tasks, priorizando las mas recientes
+      const filter: Partial<Task> = {}; //creamos objetio de tipo task
+
+      if (query.priority) {
+        filter.priority = query.priority; //se agrega al filtro la prioridad, si es que viene en la query
+      }
+
+      const tasks = await this.taskModel.find(filter).sort({ createdAt: -1 }); //filtramos ahora si con el filtro del query y por preferencia en createdAt (mas recientes)
 
       return tasks;
     } catch {
@@ -125,11 +133,37 @@ export class TasksService {
 
       return task;
     } catch (error: any) {
-      if (error?.name === 'CastError') { //Si no es un id valido
+      if (error?.name === 'CastError') {
+        //Si no es un id valido
         throw new BadRequestException(`Invalid value for field: ${error.path}`);
       }
 
       throw new InternalServerErrorException('Error fetching task'); //cualquier error del servidor
+    }
+  }
+
+  async groupByPriority() {
+    try {
+      // Traemos todas las tasks
+      const tasks = await this.taskModel.find().sort({ createdAt: -1 });
+
+      // Creamos un objeto con una lista vacía por cada prioridad
+      const groupedTasks = {
+        LOW: [],
+        MEDIUM: [],
+        HIGH: [],
+      };
+
+      // Recorremos cada tarea y la agregamos a la lista que le corresponde
+      tasks.forEach((task) => {
+        groupedTasks[task.priority].push(task);
+      });
+
+      return groupedTasks;
+    } catch {
+      throw new InternalServerErrorException(
+        'Error grouping tasks by priority',
+      );
     }
   }
 }
