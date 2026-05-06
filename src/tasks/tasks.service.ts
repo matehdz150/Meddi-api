@@ -49,20 +49,57 @@ export class TasksService {
     try {
       const deleted = await this.taskModel.findByIdAndDelete(id); //Intentar borrar el task por id
 
-      if (!deleted) { //Manejo de error de task no encontrada
+      if (!deleted) {
+        //Manejo de error de task no encontrada
         throw new NotFoundException('Task not found');
       }
 
       return {
         message: 'Task deleted successfully',
       };
-    } catch (error: any) { //Manejo de errores
+    } catch (error: any) {
+      //Manejo de errores
 
       if (error?.name === 'CastError') {
         throw new BadRequestException(`Invalid value for field: ${error.path}`); //Si el id no es un objeto de id valido de mongose o algun campo no coincide con el tipo esperado
       }
 
       throw new InternalServerErrorException('Error deleting task'); //Error del servidor
+    }
+  }
+
+  async update(id: string, data: Partial<Task>) {
+    //Puede no traer todas las propiedades del objeto, mongose se encarga de los defaults que se definen en el schema
+    try {
+      if (data.status === 'COMPLETED') {
+        data.completedAt = new Date();
+      } //si se actualiza el estado a completed, se acualiza completedAt a la hora de ejecucion
+
+      if (data.status === 'PENDING') {
+        data.completedAt = undefined;
+      } //si se actualiza el estado a pending, simplemente de 'elimina' el completed at, si es que ya habia uno
+
+      const task = await this.taskModel.findById(id); // buscamos la task por id
+
+      if (!task) {
+        throw new NotFoundException('Task not found'); //si no existe la task mandamosun 404 de not found
+      }
+
+      Object.assign(task, data); //asigna los nuevos valores a la task
+
+      await task.save(); //guardamos los valores nuevos
+
+      return task; //regresamos la task si todo salio bien
+    } catch (error: any) { //manejo de errores
+      if (error?.name === 'ValidationError') {
+        throw new BadRequestException(error.message);
+      }
+
+      if (error?.name === 'CastError') {
+        throw new BadRequestException(`Invalid value for field: ${error.path}`);
+      }
+
+      throw new InternalServerErrorException('Error updating task');
     }
   }
 }
