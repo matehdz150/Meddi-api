@@ -109,9 +109,13 @@ export class TasksService {
     //para no dejar anys, hice un type con las querys aceptadas por findAll
     //Obtener todas las tasks
     try {
-        //objeto para poder construir los filtros es como si fuera un mini contexto de los filtros
+      //objeto para poder construir los filtros es como si fuera un mini contexto de los filtros
       const filter: {
         priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+        title?: {
+          $regex: string; // busqueda parcial
+          $options: string;
+        };
         createdAt?: {
           $gte?: Date; //mayor o igual a que
           $lte?: Date; //menor o igual a que
@@ -132,6 +136,15 @@ export class TasksService {
         if (query.endDate) {
           filter.createdAt.$lte = new Date(query.endDate); //actualizamos el filtro
         }
+      }
+
+      // Buscar tareas por título
+
+      if (query.search) {
+        filter.title = {
+          $regex: query.search, // Usa regex para poder hacer busqueda parcial 
+          $options: 'i', // Hace que la búsqueda no sea case sensitive
+        };
       }
 
       // Ordenar por fecha de creación

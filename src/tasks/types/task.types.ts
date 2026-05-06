@@ -3,4 +3,5 @@ export type TaskQuery = {
   startDate?: string;
   endDate?: string;
   sort?: 'asc' | 'desc';
+  search?: string;
 };
