@@ -35,6 +35,12 @@ export class TasksController {
     return this.tasksService.groupByPriority();
   }
 
+  //Endpoint para estadisticas
+  @Get('stats')
+  getStats() {
+    return this.tasksService.getStats();
+  }
+
   // Obtener task por id
   @Get(':id')
   findOne(@Param('id') id: string) {

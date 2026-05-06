@@ -28,6 +28,9 @@ export class Task {
   @Prop()
   completedAt?: Date;
   //Fecha en la que se completo la tarea
+
+  createdAt!: Date; //tuve que agregarlos, aunque tenga @Schema({ timestamps: true }) para que typescript no me diera errores
+  updatedAt!: Date;
 }
 
 export const TaskSchema = SchemaFactory.createForClass(Task);

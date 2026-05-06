@@ -142,7 +142,7 @@ export class TasksService {
 
       if (query.search) {
         filter.title = {
-          $regex: query.search, // Usa regex para poder hacer busqueda parcial 
+          $regex: query.search, // Usa regex para poder hacer busqueda parcial
           $options: 'i', // Hace que la búsqueda no sea case sensitive
         };
       }
@@ -201,6 +201,145 @@ export class TasksService {
       throw new InternalServerErrorException(
         'Error grouping tasks by priority',
       );
+    }
+  }
+
+  async getStats() {
+    try {
+      // Traemostodas las tasks y creamos objetos para ir llenandolos
+      const tasks = await this.taskModel.find();
+
+      const byPriority = {
+        LOW: 0,
+        MEDIUM: 0,
+        HIGH: 0,
+      };
+
+      const byStatus = {
+        PENDING: 0,
+        COMPLETED: 0,
+      };
+
+      const createdByDay = {
+        Sunday: 0,
+        Monday: 0,
+        Tuesday: 0,
+        Wednesday: 0,
+        Thursday: 0,
+        Friday: 0,
+        Saturday: 0,
+      };
+
+      const completedByDay = {
+        Sunday: 0,
+        Monday: 0,
+        Tuesday: 0,
+        Wednesday: 0,
+        Thursday: 0,
+        Friday: 0,
+        Saturday: 0,
+      };
+
+      const days = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ] as const;
+
+      tasks.forEach((task) => {
+        //por cada task vamos a ver su prioridad y sumar 1 en la que este, de igual manera en el estado de la task
+        if (task.priority === 'LOW') {
+          byPriority.LOW++;
+        }
+
+        if (task.priority === 'MEDIUM') {
+          byPriority.MEDIUM++;
+        }
+
+        if (task.priority === 'HIGH') {
+          byPriority.HIGH++;
+        }
+
+        if (task.status === 'PENDING') {
+          byStatus.PENDING++;
+        }
+
+        if (task.status === 'COMPLETED') {
+          byStatus.COMPLETED++;
+        }
+
+        // Obtenemos el número del día en que se creó la tarea
+        const createdDayNumber = task.createdAt.getDay();
+
+        // Convertimos el número en el nombre del día
+        const createdDayName = days[createdDayNumber];
+
+        // Sumamos 1 al contador de ese día
+        createdByDay[createdDayName]++;
+
+        // Solo contamos tasks completadas
+        if (task.status === 'COMPLETED' && task.completedAt) {
+          // Obtenemos el número del día en que se completó
+          const completedDayNumber = task.completedAt.getDay();
+
+          // Convertimos el número en nombre del día
+          const completedDayName = days[completedDayNumber];
+
+          // Sumamos 1 al contador de ese día
+          completedByDay[completedDayName]++;
+        }
+      });
+
+      // Convertimos el objeto en un array
+      const createdDaysArray = Object.entries(createdByDay);
+
+      // Ordenamos de mayor a menor
+      createdDaysArray.sort((a, b) => {
+        return b[1] - a[1];
+      });
+
+      // Tomamos solamente los primeros 3 días
+      const top3CreatedDays = createdDaysArray.slice(0, 3);
+
+      // Formateamos el resultado
+      const topCreatedDays = top3CreatedDays.map((item) => {
+        return {
+          day: item[0],
+          count: item[1],
+        };
+      });
+
+      // Convertimos el objeto en un array
+      const completedDaysArray = Object.entries(completedByDay);
+
+      // Ordenamos de mayor a menor por cantidad de tareas completadas
+      completedDaysArray.sort((a, b) => {
+        return b[1] - a[1];
+      });
+
+      // Tomamos solamente los primeros 3 días
+      const top3CompletedDays = completedDaysArray.slice(0, 3);
+
+      // Formateamos el resultado final
+      const topCompletedDays = top3CompletedDays.map((item) => {
+        return {
+          day: item[0],
+          count: item[1],
+        };
+      });
+
+      return {
+        byPriority,
+        byStatus,
+        topCreatedDays,
+        topCompletedDays,
+      };
+    } catch {
+      throw new InternalServerErrorException('Error fetching task stats');
     }
   }
 }
