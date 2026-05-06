@@ -109,13 +109,37 @@ export class TasksService {
     //para no dejar anys, hice un type con las querys aceptadas por findAll
     //Obtener todas las tasks
     try {
-      const filter: Partial<Task> = {}; //creamos objetio de tipo task
+        //objeto para poder construir los filtros es como si fuera un mini contexto de los filtros
+      const filter: {
+        priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+        createdAt?: {
+          $gte?: Date; //mayor o igual a que
+          $lte?: Date; //menor o igual a que
+        };
+      } = {};
 
+      //filtro por prioridad
       if (query.priority) {
         filter.priority = query.priority; //se agrega al filtro la prioridad, si es que viene en la query
       }
 
-      const tasks = await this.taskModel.find(filter).sort({ createdAt: -1 }); //filtramos ahora si con el filtro del query y por preferencia en createdAt (mas recientes)
+      //filtro por fechas
+      if (query.startDate || query.endDate) {
+        filter.createdAt = {};
+        if (query.startDate) {
+          filter.createdAt.$gte = new Date(query.startDate); //actualizamos el filtro
+        }
+        if (query.endDate) {
+          filter.createdAt.$lte = new Date(query.endDate); //actualizamos el filtro
+        }
+      }
+
+      // Ordenar por fecha de creación
+      const sortOrder = query.sort === 'asc' ? 1 : -1; //si es ascendete va a sortorder va a ser 1 si no -1
+
+      const tasks = await this.taskModel
+        .find(filter)
+        .sort({ createdAt: sortOrder }); //buscamos ahora si las tasks con los filtros ya aplicados.
 
       return tasks;
     } catch {
