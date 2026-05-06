@@ -90,7 +90,8 @@ export class TasksService {
       await task.save(); //guardamos los valores nuevos
 
       return task; //regresamos la task si todo salio bien
-    } catch (error: any) { //manejo de errores
+    } catch (error: any) {
+      //manejo de errores
       if (error?.name === 'ValidationError') {
         throw new BadRequestException(error.message);
       }
@@ -100,6 +101,35 @@ export class TasksService {
       }
 
       throw new InternalServerErrorException('Error updating task');
+    }
+  }
+
+  async findAll() {
+    //Obtener todas las tasks
+    try {
+      const tasks = await this.taskModel.find().sort({ createdAt: -1 }); //Traemos todas las tasks, priorizando las mas recientes
+
+      return tasks;
+    } catch {
+      throw new InternalServerErrorException('Error fetching tasks'); //Cualquier error del servidor
+    }
+  }
+
+  async findOne(id: string) {
+    try {
+      const task = await this.taskModel.findById(id); //buscar task por id
+
+      if (!task) {
+        throw new NotFoundException(`Task with id ${id} not found`); //si no existe la task devolvemos error
+      }
+
+      return task;
+    } catch (error: any) {
+      if (error?.name === 'CastError') { //Si no es un id valido
+        throw new BadRequestException(`Invalid value for field: ${error.path}`);
+      }
+
+      throw new InternalServerErrorException('Error fetching task'); //cualquier error del servidor
     }
   }
 }
